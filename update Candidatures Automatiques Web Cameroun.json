@@ -1,0 +1,439 @@
+{
+  "name": "update Candidatures Automatiques Web Cameroun",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 9
+            }
+          ]
+        }
+      },
+      "id": "5acae1f7-102d-4186-a86f-37663a10dacc",
+      "name": "Schedule Trigger5",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        2176,
+        2032
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "cv_file_id",
+              "value": "<__PLACEHOLDER_VALUE__Google Drive File ID de votre CV__>",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "job_search_keywords",
+              "value": "développeur React Node.js PHP Vue.js Next.js JavaScript Cameroun",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "job_site_url",
+              "value": "https://www.emploi.cm/recherche-jobs-cameroun",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "58a88119-1b1c-45b3-a1cd-a4d876ab402d",
+      "name": "Workflow Configuration5",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2400,
+        2032
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "https://drive.google.com/file/d/1Vk03UDh0CcNz9fY1XWoZ5jeoExTO3bij/view?usp=drive_link",
+          "mode": "url"
+        },
+        "options": {}
+      },
+      "id": "96fc9fec-8de2-4599-b3fc-b29f55c251c4",
+      "name": "Get CV from Google Drive5",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        3072,
+        2128
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "cKL2KqHlScTyu6ph",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "options": {}
+      },
+      "id": "fb4f63f7-e533-4591-b571-64112fe153e5",
+      "name": "Extract CV Text5",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        3296,
+        2256
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=CV du candidat:\n{{ $('Extract CV Text5').first().json.text }}\n\nOffre d'emploi:\nTitre: {{ $json.job_title }}\nEntreprise: {{ $json.company_name }}\nDescription: {{ $json.job_description }}",
+        "options": {
+          "systemMessage": "Tu es un expert en rédaction de lettres de motivation pour des postes de développeur.\n\nTa mission:\n1. Analyser le CV du candidat et l'offre d'emploi\n2. Rédiger une lettre de motivation personnalisée et professionnelle en français\n3. Mettre en avant les compétences pertinentes du candidat (React, Node.js, PHP, Vue.js, Next.js, JavaScript)\n4. Adapter le ton selon le type d'entreprise\n5. Inclure des mots-clés pour passer les filtres ATS\n6. Garder une structure professionnelle: introduction, expériences pertinentes, motivation, conclusion\n\nRéponds uniquement avec le texte de la lettre de motivation, sans formatage supplémentaire."
+        }
+      },
+      "id": "77de3454-39cc-49f8-a94e-260e3fbba657",
+      "name": "Generate Cover Letter5",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        3520,
+        2256
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "id": "07216a4b-b5f9-46fe-876c-e0e63f9c03e4",
+      "name": "OpenAI Chat Model5",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        3600,
+        2480
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "6lQZzihlzlNXHshD",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.recruiter_email ? ($json.recruiter_email.toString().trim() || 'no-reply@example.com') : 'no-reply@example.com' }}",
+        "subject": "=Candidature - {{ $json.job_title }} - {{ $json.company_name }}",
+        "message": "={{ $json.cover_letter || 'Lettre de motivation non disponible' }}",
+        "options": {
+          "attachmentsUi": {
+            "attachmentsBinary": [
+              {}
+            ]
+          }
+        }
+      },
+      "id": "032b02c3-80e2-4ec4-9304-99586044509e",
+      "name": "Send Application Email5",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        4320,
+        2128
+      ],
+      "webhookId": "137f1556-b80c-45b0-b281-4d9658f33f97",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "mFTUiSP2gZdDRkRN",
+          "name": "Gmail account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Workflow Configuration5').first().json.job_site_url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "4b3a6863-bc3d-4fef-9277-a022df2b4702",
+      "name": "Scrape Cameroonian Job Sites",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2624,
+        2032
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse HTML and extract job listings for developer positions using native JavaScript\n// Get HTML data from previous node\nconst htmlData = $input.first().json.data;\n\n// Keywords to filter for developer positions\nconst keywords = ['React', 'Node.js', 'PHP', 'Vue.js', 'Next.js', 'JavaScript', 'développeur', 'developer'];\n\n// Array to store extracted jobs\nconst jobs = [];\n\n// Helper function to decode HTML entities\nfunction decodeHtml(html) {\n  return html\n    .replace(/&amp;/g, '&')\n    .replace(/&lt;/g, '<')\n    .replace(/&gt;/g, '>')\n    .replace(/&quot;/g, '\"')\n    .replace(/&#039;/g, \"'\")\n    .replace(/&nbsp;/g, ' ');\n}\n\n// Helper function to strip HTML tags and get text content\nfunction stripHtml(html) {\n  return html.replace(/<[^>]*>/g, ' ').replace(/\\s+/g, ' ').trim();\n}\n\n// Helper function to extract text from HTML element by class or tag\nfunction extractByPattern(html, patterns) {\n  for (const pattern of patterns) {\n    const match = html.match(pattern);\n    if (match && match[1]) {\n      return stripHtml(decodeHtml(match[1]));\n    }\n  }\n  return '';\n}\n\n// Split HTML into potential job listing blocks\n// Look for common job listing container patterns\nconst jobBlockPatterns = [\n  /<article[^>]*>([\\s\\S]*?)<\\/article>/gi,\n  /<div[^>]*class=\"[^\"]*job[^\"]*\"[^>]*>([\\s\\S]*?)<\\/div>/gi,\n  /<div[^>]*class=\"[^\"]*position[^\"]*\"[^>]*>([\\s\\S]*?)<\\/div>/gi,\n  /<li[^>]*class=\"[^\"]*job[^\"]*\"[^>]*>([\\s\\S]*?)<\\/li>/gi\n];\n\nlet jobBlocks = [];\nfor (const pattern of jobBlockPatterns) {\n  const matches = htmlData.matchAll(pattern);\n  for (const match of matches) {\n    jobBlocks.push(match[0]);\n  }\n}\n\n// If no structured blocks found, try to split by common separators\nif (jobBlocks.length === 0) {\n  // Split by hr tags or multiple br tags\n  jobBlocks = htmlData.split(/<hr[^>]*>|<br\\s*\\/?>{3,}/i);\n}\n\n// Process each job block\nfor (const block of jobBlocks) {\n  // Extract job title (usually in h1-h4 tags)\n  const titlePatterns = [\n    /<h[1-4][^>]*class=\"[^\"]*title[^\"]*\"[^>]*>([^<]+)<\\/h[1-4]>/i,\n    /<h[1-4][^>]*>([^<]+)<\\/h[1-4]>/i,\n    /<[^>]*class=\"[^\"]*job-title[^\"]*\"[^>]*>([^<]+)</i,\n    /<[^>]*class=\"[^\"]*title[^\"]*\"[^>]*>([^<]+)</i\n  ];\n  const job_title = extractByPattern(block, titlePatterns);\n\n  // Extract company name\n  const companyPatterns = [\n    /<[^>]*class=\"[^\"]*company[^\"]*\"[^>]*>([^<]+)</i,\n    /<[^>]*class=\"[^\"]*employer[^\"]*\"[^>]*>([^<]+)</i,\n    /<span[^>]*>([^<]*(?:SARL|SA|SAS|Ltd|Inc|Corp)[^<]*)<\\/span>/i\n  ];\n  const company_name = extractByPattern(block, companyPatterns);\n\n  // Extract location\n  const locationPatterns = [\n    /<[^>]*class=\"[^\"]*location[^\"]*\"[^>]*>([^<]+)</i,\n    /<[^>]*class=\"[^\"]*place[^\"]*\"[^>]*>([^<]+)</i,\n    /(?:Yaoundé|Douala|Cameroun|Cameroon)/i\n  ];\n  const location = extractByPattern(block, locationPatterns) || 'Cameroun';\n\n  // Extract job type\n  const typePatterns = [\n    /<[^>]*class=\"[^\"]*type[^\"]*\"[^>]*>([^<]+)</i,\n    /<[^>]*class=\"[^\"]*contract[^\"]*\"[^>]*>([^<]+)</i,\n    /(?:CDI|CDD|Stage|Freelance|Temps plein|Temps partiel)/i\n  ];\n  const job_type = extractByPattern(block, typePatterns) || 'Non spécifié';\n\n  // Extract description (get paragraph text)\n  const descPatterns = [\n    /<[^>]*class=\"[^\"]*description[^\"]*\"[^>]*>([\\s\\S]*?)<\\/[^>]+>/i,\n    /<p[^>]*>([\\s\\S]*?)<\\/p>/i\n  ];\n  let job_description = extractByPattern(block, descPatterns);\n  if (!job_description) {\n    job_description = stripHtml(block).substring(0, 500);\n  }\n\n  // Extract email address\n  const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}/g;\n  const emailMatches = block.match(emailRegex);\n  const recruiter_email = emailMatches ? emailMatches[0] : '';\n\n  // Check if job matches developer keywords\n  const fullText = (job_title + ' ' + job_description).toLowerCase();\n  const matchesKeywords = keywords.some(keyword => fullText.includes(keyword.toLowerCase()));\n\n  // Only add jobs that match developer keywords and have basic required fields\n  if (matchesKeywords && job_title && job_title.length > 3) {\n    jobs.push({\n      json: {\n        job_title: job_title,\n        company_name: company_name || 'Entreprise au Cameroun',\n        job_description: job_description,\n        recruiter_email: recruiter_email,\n        location: location,\n        job_type: job_type\n      }\n    });\n  }\n}\n\n// If no jobs found with structured approach, try a simpler text-based extraction\nif (jobs.length === 0) {\n  const plainText = stripHtml(htmlData);\n  const emailMatches = plainText.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}/g);\n  \n  if (emailMatches && emailMatches.length > 0) {\n    const matchesKeywords = keywords.some(keyword => plainText.toLowerCase().includes(keyword.toLowerCase()));\n    \n    if (matchesKeywords) {\n      // Try to extract title from text (look for lines with developer keywords)\n      const lines = plainText.split('\\n').filter(line => line.trim().length > 0);\n      let foundTitle = 'Développeur Web';\n      \n      for (const line of lines) {\n        const lineLower = line.toLowerCase();\n        if (keywords.some(keyword => lineLower.includes(keyword.toLowerCase())) && line.length < 100) {\n          foundTitle = line.trim();\n          break;\n        }\n      }\n      \n      jobs.push({\n        json: {\n          job_title: foundTitle,\n          company_name: 'Entreprise au Cameroun',\n          job_description: plainText.substring(0, 500),\n          recruiter_email: emailMatches[0],\n          location: 'Cameroun',\n          job_type: 'Non spécifié'\n        }\n      });\n    }\n  }\n}\n\nreturn jobs.length > 0 ? jobs : [{ json: { message: 'Aucune offre d\\'emploi trouvée correspondant aux critères' } }];"
+      },
+      "id": "bd1391f5-fa0b-41b5-9e06-51891cf2946f",
+      "name": "Extract Job Data from HTML",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2848,
+        2032
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "job_title",
+              "value": "Développeur Full Stack React/Node.js",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "company_name",
+              "value": "TechCorp Cameroun",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "job_description",
+              "value": "Nous recherchons un développeur full stack expérimenté avec React et Node.js pour rejoindre notre équipe à Douala",
+              "type": "string"
+            },
+            {
+              "id": "id-4",
+              "name": "recruiter_email",
+              "value": "test@example.com",
+              "type": "string"
+            },
+            {
+              "id": "id-5",
+              "name": "location",
+              "value": "Douala, Cameroun",
+              "type": "string"
+            },
+            {
+              "id": "id-6",
+              "name": "job_type",
+              "value": "CDI",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e2443f84-dde9-40bb-98aa-b893776f0eb4",
+      "name": "Test Job Data (TEMP)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2848,
+        2224
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "cover_letter",
+              "value": "={{ $('Generate Cover Letter5').first().json.output }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {
+          "stripBinary": false
+        }
+      },
+      "id": "94defd69-a598-4e62-8643-73a306fb4769",
+      "name": "Combine Job and Letter Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3872,
+        2256
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "id": "9a6affb2-14d3-4e98-87fa-dc65fceae07c",
+      "name": "Merge CV and Letter",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        4096,
+        2128
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Workflow Configuration5": {
+      "main": [
+        [
+          {
+            "node": "Scrape Cameroonian Job Sites",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scrape Cameroonian Job Sites": {
+      "main": [
+        [
+          {
+            "node": "Extract Job Data from HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model5": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Generate Cover Letter5",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get CV from Google Drive5": {
+      "main": [
+        [
+          {
+            "node": "Extract CV Text5",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge CV and Letter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract CV Text5": {
+      "main": [
+        [
+          {
+            "node": "Generate Cover Letter5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger5": {
+      "main": [
+        [
+          {
+            "node": "Workflow Configuration5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Test Job Data (TEMP)": {
+      "main": [
+        [
+          {
+            "node": "Get CV from Google Drive5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Job Data from HTML": {
+      "main": [
+        [
+          {
+            "node": "Get CV from Google Drive5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Cover Letter5": {
+      "main": [
+        [
+          {
+            "node": "Combine Job and Letter Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Combine Job and Letter Data": {
+      "main": [
+        [
+          {
+            "node": "Merge CV and Letter",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge CV and Letter": {
+      "main": [
+        [
+          {
+            "node": "Send Application Email5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "092f2e24-7469-4b0b-962b-2e059202e621",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "01f8e283db514f2f316928a452a75f3cae9bde159e43f85e1e9ac3037a341436"
+  },
+  "id": "p8WQ18YemUvY92O7",
+  "tags": []
+}

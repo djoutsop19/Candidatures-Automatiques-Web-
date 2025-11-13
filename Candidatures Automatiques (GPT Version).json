@@ -1,0 +1,408 @@
+{
+  "name": "Candidatures Automatiques (GPT Version)",
+  "nodes": [
+    {
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            {
+              "hour": 9
+            }
+          ]
+        }
+      },
+      "name": "Cron Daily",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [
+        -848,
+        240
+      ],
+      "id": "eb7d2e3f-03fe-483a-a11a-2e4ce9663d8d"
+    },
+    {
+      "parameters": {
+        "url": "https://www.jobartiscameroun.com/",
+        "responseFormat": "string",
+        "options": {},
+        "headerParametersUi": {
+          "parameter": [
+            {
+              "name": "User-Agent",
+              "value": "n8n"
+            }
+          ]
+        }
+      },
+      "name": "Fetch Jobartis",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        -624,
+        48
+      ],
+      "id": "50746f7c-332f-47fa-98ed-50d9dcf0a6be"
+    },
+    {
+      "parameters": {
+        "functionCode": "// Parser Jobartis HTML\nreturn [{ json: { title: 'Développeur React', company: 'Acme Tech', apply_email: 'jobs@acmetech.cm' } }];"
+      },
+      "name": "Parse Jobartis",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        -400,
+        48
+      ],
+      "id": "7286f942-d7a5-4c34-b1d1-d52dd84f5cfa"
+    },
+    {
+      "parameters": {
+        "url": "https://www.emploi.cm",
+        "responseFormat": "string",
+        "options": {},
+        "headerParametersUi": {
+          "parameter": [
+            {
+              "name": "User-Agent",
+              "value": "n8n"
+            }
+          ]
+        }
+      },
+      "name": "Fetch Emploi.cm",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        -624,
+        240
+      ],
+      "id": "de69fed1-585b-4940-adb7-ebb48fe27c32"
+    },
+    {
+      "parameters": {
+        "functionCode": "// Parser Emploi.cm RSS\nreturn [{ json: { title: 'Développeur Node.js', company: 'Tech Solutions', apply_email: 'recrutement@techsolutions.cm' } }];"
+      },
+      "name": "Parse Emploi.cm",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        -400,
+        240
+      ],
+      "id": "f3bdf485-ecae-4abe-a4ca-56f5aa07d06c"
+    },
+    {
+      "parameters": {
+        "url": "https://www.linkedin.com/jobs/search/?keywords=developpeur+web&location=Cameroun",
+        "responseFormat": "string",
+        "options": {}
+      },
+      "name": "Fetch LinkedIn",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        -624,
+        432
+      ],
+      "id": "c80bb635-dafe-45fd-b2ef-9f3fba5ea6bb"
+    },
+    {
+      "parameters": {
+        "functionCode": "// Parser LinkedIn HTML (public jobs uniquement)\nreturn [{ json: { title: 'Développeur Full Stack', company: 'LinkedInTech', apply_email: 'hr@linkedintech.cm' } }];"
+      },
+      "name": "Parse LinkedIn",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        -400,
+        432
+      ],
+      "id": "80229098-f11c-438f-b598-a60db7d9b60e"
+    },
+    {
+      "parameters": {
+        "functionCode": "return items.map(item => {\n  const message = item.json.choices?.[0]?.message?.content || '';\n  return { json: { ...item.json, coverLetter: message } };\n});"
+      },
+      "name": "Extract Cover Letter Text",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        176,
+        336
+      ],
+      "id": "ffd9fbc0-2299-4ed6-8c60-4892e511c4dc"
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "https://drive.google.com/file/d/1Vk03UDh0CcNz9fY1XWoZ5jeoExTO3bij/view?usp=drive_link",
+          "mode": "url"
+        },
+        "options": {}
+      },
+      "name": "Get CV from Google Drive",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 1,
+      "position": [
+        352,
+        368
+      ],
+      "id": "37bd3183-8fdb-45e2-98b7-97013734aec0",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "cKL2KqHlScTyu6ph",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "items.forEach(item => {\n  item.json.message = `Objet : Candidature au poste de ${item.json.title} chez ${item.json.company}\\n\\n${item.json.coverLetter}`;\n});\nreturn items;"
+      },
+      "name": "Prepare Email Content",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        272,
+        144
+      ],
+      "id": "3276f6dd-c2a9-4f4a-99ed-08d1f4b9e691"
+    },
+    {
+      "parameters": {
+        "subject": "Candidature Développeur Web - {{$json[\"title\"]}}",
+        "message": "{{$json[\"message\"]}}",
+        "additionalFields": {}
+      },
+      "name": "Send Gmail",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 1,
+      "position": [
+        496,
+        144
+      ],
+      "id": "7863f84c-27e0-4b77-96bc-013ac5c813d2",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "uwXoc2nz4hiKFxJm",
+          "name": "Gmail account 4"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "return items.map(item => ({ json: { title: item.json.title, company: item.json.company, email: item.json.apply_email, date: new Date().toISOString(), status: 'Envoyée' } }));"
+      },
+      "name": "Log Sent",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        720,
+        144
+      ],
+      "id": "9606f137-9100-4b10-b864-7858c7ac0a63"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        -64,
+        48
+      ],
+      "id": "fd8b09f1-410c-4294-810c-e85ebd99c98d",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -112,
+        336
+      ],
+      "id": "c76dd41c-1269-429d-89d3-6c74cd0b814b",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "6lQZzihlzlNXHshD",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Cron Daily": {
+      "main": [
+        [
+          {
+            "node": "Fetch Jobartis",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Fetch Emploi.cm",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Fetch LinkedIn",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Jobartis": {
+      "main": [
+        [
+          {
+            "node": "Parse Jobartis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Emploi.cm": {
+      "main": [
+        [
+          {
+            "node": "Parse Emploi.cm",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch LinkedIn": {
+      "main": [
+        [
+          {
+            "node": "Parse LinkedIn",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Jobartis": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Emploi.cm": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse LinkedIn": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Cover Letter Text": {
+      "main": [
+        [
+          {
+            "node": "Prepare Email Content",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get CV from Google Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Email Content": {
+      "main": [
+        [
+          {
+            "node": "Send Gmail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Gmail": {
+      "main": [
+        [
+          {
+            "node": "Log Sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Extract Cover Letter Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "63993a31-4008-42e5-886f-e3ee42a8b04c",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "01f8e283db514f2f316928a452a75f3cae9bde159e43f85e1e9ac3037a341436"
+  },
+  "id": "vTJMUZCGfa1Vt8ys",
+  "tags": []
+}
